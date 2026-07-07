@@ -35,6 +35,7 @@ jobs:
             --lto=no --jobs=1 ^
             --show-scons --show-progress ^
             --output-dir=dist --remove-output ^
+            --nofollow-import-to=pymupdf ^
             --include-data-dir=frontends/templates=templates ^
             --include-data-dir=frontends/static=static ^
             --include-data-dir=whatsapp-bridge=whatsapp-bridge ^

@@ -63,10 +63,9 @@ def _extract_text(filepath, ext):
                 return f.read()
 
         elif ext == ".pdf":
-            import fitz
-            doc = fitz.open(filepath)
-            text = "\n".join(page.get_text() for page in doc)
-            doc.close()
+            from pypdf import PdfReader
+            reader = PdfReader(filepath)
+            text = "\n".join(page.extract_text() for page in reader.pages)
             return text
 
         elif ext == ".docx":
