@@ -26,22 +26,14 @@ jobs:
         shell: cmd
         run: python -c "import os,sys; os.environ['GROQ_API_KEY']='test'; os.environ['TELEGRAM_BOT_TOKEN']='test'; import lexy_tray; print('Imports OK')"
 
-      - name: Check C compiler
-        shell: cmd
-        run: |
-          cl.exe 2>&1 || echo "MSVC not in PATH, checking alternatives..."
-          where cl.exe 2>&1 || echo "cl.exe not found"
-          dir "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC" /b 2>&1 || echo "VS 2022 not found"
-
       - name: Build with Nuitka
         shell: cmd
         run: |
-          python -m nuitka --standalone ^
+          python -m nuitka --standalone --mingw64 ^
             --assume-yes-for-downloads ^
             --windows-console-mode=disable ^
-            --lto=no --jobs=2 ^
+            --lto=no --jobs=1 ^
             --show-scons --show-progress ^
-            --mingw64 ^
             --output-dir=dist --remove-output ^
             --include-data-dir=frontends/templates=templates ^
             --include-data-dir=frontends/static=static ^
