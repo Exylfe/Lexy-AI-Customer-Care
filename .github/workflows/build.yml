@@ -25,10 +25,10 @@ jobs:
       - name: Build with Nuitka
         shell: cmd
         run: |
-          python -m nuitka --standalone --mingw64 ^
+          python -m nuitka --standalone ^
             --assume-yes-for-downloads ^
             --windows-console-mode=disable ^
-            --lto=yes --jobs=2 ^
+            --lto=no --jobs=2 ^
             --show-scons --show-progress ^
             --enable-plugin=anti-bloat ^
             --noinclude-pytest-mode=nofollow ^
