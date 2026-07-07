@@ -22,6 +22,10 @@ jobs:
           pip install -r requirements.txt
           pip install nuitka
 
+      - name: Verify imports
+        shell: cmd
+        run: python -c "import os,sys; os.environ['GROQ_API_KEY']='test'; os.environ['TELEGRAM_BOT_TOKEN']='test'; import lexy_tray; print('Imports OK')"
+
       - name: Build with Nuitka
         shell: cmd
         run: |
@@ -30,10 +34,6 @@ jobs:
             --windows-console-mode=disable ^
             --lto=no --jobs=2 ^
             --show-scons --show-progress ^
-            --enable-plugin=anti-bloat ^
-            --noinclude-pytest-mode=nofollow ^
-            --noinclude-setuptools-mode=nofollow ^
-            --python-flag=no_docstrings ^
             --output-dir=dist --remove-output ^
             --include-data-dir=frontends/templates=templates ^
             --include-data-dir=frontends/static=static ^
