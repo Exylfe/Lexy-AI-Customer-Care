@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexy — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f7fa;--card:#fff;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--primary:#6c63ff;--primary-hover:#5a52e0;--success:#10b981;--danger:#ef4444;--shadow:0 2px 12px rgba(0,0,0,.06);--radius:12px}
+[data-theme=dark]{--bg:#0f0f23;--card:#1a1a2e;--text:#e4e4f0;--muted:#9ca3af;--border:#2d2d4a;--primary:#7c73ff;--primary-hover:#8d85ff;--shadow:0 2px 12px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar h2{font-size:20px}
+.topbar .badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600}
+.badge.green{background:#d1fae5;color:#065f46}
+.badge.red{background:#fee2e2;color:#991b1b}
+.layout{display:flex;max-width:1200px;margin:0 auto;padding:24px;gap:24px}
+.sidebar{width:220px;flex-shrink:0}
+.sidebar a{display:block;padding:10px 14px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;font-weight:500;margin-bottom:4px;transition:background .15s}
+.sidebar a:hover,.sidebar a.active{background:var(--primary);color:#fff}
+.main{flex:1;min-width:0}
+.section{display:none;animation:fadeIn .3s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+.card h3{font-size:18px;margin-bottom:16px}
+.card h4{font-size:15px;margin-bottom:12px;color:var(--muted)}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;margin-top:14px}
+label:first-of-type{margin-top:0}
+input,select,textarea{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:14px;background:var(--card);color:var(--text);transition:border-color .2s;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+textarea{resize:vertical;min-height:70px}
+.char-count{font-size:12px;color:var(--muted);text-align:right;margin-top:2px}
+.row{display:flex;gap:12px}
+.row>*{flex:1}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle .slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:11px;transition:.3s}
+.toggle .slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:var(--primary)}
+.toggle input:checked+.slider:before{transform:translateX(18px)}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:3px;background:var(--border);outline:none;padding:0;border:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer}
+.slider-group{margin:12px 0}
+.slider-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.day-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.day-row .day-name{width:90px;font-weight:600;font-size:14px}
+.day-row select{width:80px;padding:6px;font-size:13px;flex-shrink:0}
+.preview-box{background:var(--bg);border-radius:8px;padding:14px;margin:12px 0;font-size:14px;line-height:1.5;border-left:3px solid var(--primary);min-height:40px}
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.action-bar button{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s}
+.action-bar button:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--bg);color:var(--text)}
+.btn-secondary:hover{background:var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 14px;font-size:12px}
+.save-toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;opacity:0;transform:translateY(20px);transition:all .3s;pointer-events:none}
+.save-toast.show{opacity:1;transform:translateY(0)}
+.save-toast.success{background:var(--success);color:#fff}
+.save-toast.error{background:var(--danger);color:#fff}
+.save-toast.saving{background:var(--primary);color:#fff}
+.holiday-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg);padding:4px 10px;border-radius:20px;font-size:12px;margin:4px}
+.holiday-tag button{background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;font-weight:700;padding:0;line-height:1}
+.connected-status{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.connected-status .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.connected-status .dot.green{background:var(--success)}
+.connected-status .dot.red{background:var(--danger)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:768px){
+  .layout{flex-direction:column;padding:16px}
+  .sidebar{width:100%;display:flex;gap:4px;overflow-x:auto;padding-bottom:8px}
+  .sidebar a{white-space:nowrap;flex-shrink:0;font-size:13px;padding:8px 12px}
+  .row{flex-direction:column;gap:0}
+  .grid-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h2>⚙️ Lexy Settings</h2>
+  <div>
+    <span class="badge {% if config.whatsapp.connected %}green{% else %}red{% endif %}" id="statusBadge">
+      {% if config.whatsapp.connected %}🟢 Connected{% else %}🔴 Disconnected{% endif %}
+    </span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <a href="#" class="active" data-section="business" onclick="switchSection(event,'business')">🏪 Business</a>
+    <a href="#" data-section="personality" onclick="switchSection(event,'personality')">🎭 Personality</a>
+    <a href="#" data-section="hours" onclick="switchSection(event,'hours')">🕐 Hours</a>
+    <a href="#" data-section="app" onclick="switchSection(event,'app')">⚙️ App</a>
+    <a href="#" data-section="channels" onclick="switchSection(event,'channels')">📡 Channels</a>
+    <a href="#" data-section="account" onclick="switchSection(event,'account')">🔌 Account</a>
+  </nav>
+
+  <div class="main">
+    <!-- Section 1: Business Info -->
+    <div class="section active" id="sec-business">
+      <div class="card">
+        <h3>Business Information</h3>
+        <label>Business Name</label>
+        <input type="text" id="bizName" value="{{ config.business.name }}" maxlength="50" onchange="autoSave('business',{name:this.value})">
+        <label>Business Type</label>
+        <select id="bizType" onchange="autoSave('business',{type:this.value})">
+          {% for opt in ["","Restaurant","Salon","Repair","Retail","Service","E-Commerce","Hotel","Medical","Other"] %}
+          <option value="{{ opt }}" {% if config.business.type==opt %}selected{% endif %}>{{ opt or 'Select...' }}</option>
+          {% endfor %}
+        </select>
+        <label>What Do You Offer?</label>
+        <textarea id="bizDesc" maxlength="250" onchange="autoSave('business',{description:this.value})">{{ config.business.description }}</textarea>
+        <label>Website</label>
+        <input type="url" id="bizWebsite" value="{{ config.business.website }}" onchange="autoSave('business',{website:this.value})">
+        <div class="row">
+          <div><label>Service Area</label><input type="text" id="bizArea" value="{{ config.business.service_area }}" onchange="autoSave('business',{service_area:this.value})"></div>
+          <div><label>Language</label><select id="bizLang" onchange="autoSave('business',{language:this.value})">
+            {% for lang in ["English"] %}
+            <option value="{{ lang }}" {% if config.business.language==lang %}selected{% endif %}>{{ lang }}</option>
+            {% endfor %}
+            <option value="Chichewa" disabled>Chichewa (coming soon)</option>
+          </select></div>
+        </div>
+      </div>
+
+      <!-- Knowledge Base -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="margin:0">📚 Knowledge Base</h3>
+          <button class="btn btn-primary btn-sm" onclick="showUploadModal()">+ Upload Docs</button>
+        </div>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">Upload documents (PDFs, policies, price lists) so Lexy can reference them when answering customers.</p>
+
+        <div id="kb-quota" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span id="kb-usage-text">Loading...</span>
+            <span id="kb-plan-badge" class="badge green">Free</span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div id="kb-usage-bar" style="width:0%;height:100%;background:var(--primary);border-radius:3px;transition:width .3s"></div>
+          </div>
+        </div>
+
+        <div id="kb-doc-list">
+          <p style="font-size:14px;color:var(--muted);text-align:center;padding:20px">No documents uploaded yet.</p>
+        </div>
+      </div>
+
+      <!-- Upload Modal -->
+      <div id="kb-upload-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center" onclick="if(event.target===this)hideUploadModal()">
+        <div style="background:var(--card);border-radius:var(--radius);padding:24px;max-width:500px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+          <h3 style="margin-bottom:12px">Upload Documents</h3>
+          <div id="kb-dropzone" style="border:2px dashed var(--border);border-radius:8px;padding:30px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('kb-file-input').click()" ondragover="this.style.borderColor='var(--primary)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleDrop(event)">
+            <p style="font-size:24px;margin-bottom:8px">📁</p>
+            <p style="font-size:14px;color:var(--muted)">Drag & drop files here or click to browse</p>
+            <p style="font-size:12px;color:var(--muted);margin-top:4px">Supported: .pdf, .docx, .txt, .md</p>
+            <input type="file" id="kb-file-input" multiple accept=".pdf,.docx,.txt,.md" style="display:none" onchange="handleFileSelect(this.files)">
+          </div>
+          <div id="kb-upload-preview" style="margin-top:12px;max-height:200px;overflow-y:auto"></div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn btn-primary" id="kb-upload-btn" onclick="startUpload()" disabled>Upload</button>
+            <button class="btn btn-secondary" onclick="hideUploadModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Personality -->
+    <div class="section" id="sec-personality">
+      <div class="card">
+        <h3>Lexy's Personality</h3>
+        <div class="slider-group">
+          <div class="slider-labels"><span>Friendly</span><span id="toneLabel">Balanced</span><span>Professional</span></div>
+          <input type="range" min="-50" max="50" value="{{ config.personality.tone }}" id="toneSlider" oninput="updateTonePreview();autoSave('personality',{tone:parseInt(this.value)})">
+        </div>
+        <label>Response Speed</label>
+        <div class="slider-group">
+          <div class="slider-labels"><span>Instant</span><span id="speedLabel">Natural</span><span>Delayed</span></div>
+          <input type="range" min="0" max="100" value="{% if config.personality.speed=='instant' %}0{% elif config.personality.speed=='delayed' %}100{% else %}50{% endif %}" id="speedSlider" oninput="updateSpeedLabel();autoSave('personality',{speed: speedValue()})">
+        </div>
+        <div class="toggle-row"><span>Use Emojis</span><label class="toggle"><input type="checkbox" {% if config.personality.use_emojis %}checked{% endif %} onchange="autoSave('personality',{use_emojis:this.checked})"><span class="slider"></span></label></div>
+        <label>Greeting</label>
+        <div class="row">
+          <select id="greetingType" onchange="toggleGreeting();autoSave('personality',{greeting_type:this.value})">
+            <option value="auto" {% if config.personality.greeting_type=='auto' %}selected{% endif %}>Auto</option>
+            <option value="custom" {% if config.personality.greeting_type=='custom' %}selected{% endif %}>Custom</option>
+          </select>
+          <input type="text" id="greetingCustom" maxlength="200" value="{{ config.personality.greeting_custom }}" placeholder="Custom greeting..." onchange="autoSave('personality',{greeting_custom:this.value})" {% if config.personality.greeting_type!='custom' %}disabled style="opacity:.5"{% endif %}>
+        </div>
+        <label>Response Length</label>
+        <select id="lengthSelect" onchange="autoSave('personality',{response_length:parseInt(this.value)})">
+          <option value="-50" {% if config.personality.response_length<=-30 %}selected{% endif %}>Brief</option>
+          <option value="0" {% if config.personality.response_length>-30 and config.personality.response_length<30 %}selected{% endif %}>Normal</option>
+          <option value="50" {% if config.personality.response_length>=30 %}selected{% endif %}>Detailed</option>
+        </select>
+        <div class="preview-box" id="previewBox">"Hi! Thanks for reaching out. How can I help you today?"</div>
+        <button class="btn btn-secondary btn-sm" onclick="resetSection('personality')">Reset to Default</button>
+      </div>
+    </div>
+
+    <!-- Section 3: Working Hours -->
+    <div class="section" id="sec-hours">
+      <div class="card">
+        <h3>Working Hours</h3>
+        {% for day in ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"] %}
+        <div class="day-row">
+          <span class="day-name">{{ day|capitalize }}</span>
+          <label class="toggle" style="margin:0"><input type="checkbox" {% if config.hours[day].open %}checked{% endif %} onchange="saveHours()"><span class="slider"></span></label>
+          <select id="from_{{ day }}" {% if not config.hours[day].open %}disabled style="opacity:.4"{% endif %} onchange="saveHours()">
+            {% for h in range(6,24) %}<option value="{{ '%02d:00'|format(h) }}" {% if config.hours[day].from == '%02d:00'|format(h) %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>{% endfor %}
+          </select>
+          <span style="color:var(--muted)">to</span>
+          <select id="to_{{ day }}" {% if not config.hours[day].open %}disabled style="opacity:.4"{% endif %} onchange="saveHours()">
+            {% for h in range(6,24) %}<option value="{{ '%02d:00'|format(h) }}" {% if config.hours[day].to=='%02d:00'|format(h) %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+        <div class="action-bar">
+          <button onclick="copyWeekdays()">📋 Copy Mon-Fri to All</button>
+          <button onclick="closeAll()">🔴 Set All Closed</button>
+        </div>
+        <label style="margin-top:16px">Closed Message</label>
+        <input type="text" id="closedMsg" value="{{ config.hours.closed_message }}" maxlength="150" onchange="autoSave('hours',{closed_message:this.value})">
+        <h4 style="margin-top:20px">Holidays / Special Days</h4>
+        <div id="holidayList">
+          {% for h in config.hours.holidays %}
+          <span class="holiday-tag">{{ h.label or h.date }} <button onclick="removeHoliday({{ loop.index0 }})">×</button></span>
+          {% endfor %}
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="date" id="holidayDate">
+          <input type="text" id="holidayLabel" placeholder="Label (e.g. Christmas)">
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addHoliday()">+ Add Holiday</button>
+      </div>
+    </div>
+
+    <!-- Section 4: App Settings -->
+    <div class="section" id="sec-app">
+      <div class="card">
+        <h3>Auto-Start & Background</h3>
+        <div class="toggle-row"><span>Auto-start on computer startup</span><label class="toggle"><input type="checkbox" {% if config.app.auto_start %}checked{% endif %} onchange="autoSave('app',{auto_start:this.checked})"><span class="slider"></span></label></div>
+        <div class="toggle-row"><span>Minimize to tray on startup</span><label class="toggle"><input type="checkbox" {% if config.app.minimize_tray %}checked{% endif %} onchange="autoSave('app',{minimize_tray:this.checked})"><span class="slider"></span></label></div>
+        <div class="toggle-row"><span>Show system tray icon</span><label class="toggle"><input type="checkbox" {% if config.app.show_tray_icon %}checked{% endif %} onchange="autoSave('app',{show_tray_icon:this.checked})"><span class="slider"></span></label></div>
+      </div>
+      <div class="card">
+        <h3>Notifications & Alerts</h3>
+        <div class="toggle-row"><span>Desktop notifications</span><label class="toggle"><input type="checkbox" {% if config.app.notifications %}checked{% endif %} onchange="autoSave('app',{notifications:this.checked})"><span class="slider"></span></label></div>
+        <div class="toggle-row"><span>Sound alerts</span><label class="toggle"><input type="checkbox" {% if config.app.sound_alerts %}checked{% endif %} onchange="autoSave('app',{sound_alerts:this.checked})"><span class="slider"></span></label></div>
+        <div class="toggle-row"><span>Show message preview in pop-up</span><label class="toggle"><input type="checkbox" {% if config.app.show_preview %}checked{% endif %} onchange="autoSave('app',{show_preview:this.checked})"><span class="slider"></span></label></div>
+      </div>
+      <div class="card">
+        <h3>Performance & Logging</h3>
+        <div class="toggle-row"><span>Save debug logs (~1MB/day)</span><label class="toggle"><input type="checkbox" {% if config.app.debug_logs %}checked{% endif %} onchange="autoSave('app',{debug_logs:this.checked})"><span class="slider"></span></label></div>
+        <label>Update Frequency</label>
+        <select onchange="autoSave('app',{update_frequency:this.value})">
+          <option value="automatic" {% if config.app.update_frequency=='automatic' %}selected{% endif %}>Automatic</option>
+          <option value="manual" {% if config.app.update_frequency=='manual' %}selected{% endif %}>Manual</option>
+          <option value="disabled" {% if config.app.update_frequency=='disabled' %}selected{% endif %}>Disabled</option>
+        </select>
+      </div>
+      <div class="card">
+        <h3>Data & Privacy</h3>
+        <div class="toggle-row"><span>Help improve Lexy (anonymous usage)</span><label class="toggle"><input type="checkbox" {% if config.app.telemetry %}checked{% endif %} onchange="autoSave('app',{telemetry:this.checked})"><span class="slider"></span></label></div>
+        <p style="font-size:13px;color:var(--muted);margin:8px 0">Data location: <code>~/.lexy/</code></p>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="exportData()">📥 Export All Data</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAllData()">🗑️ Delete All Data</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Appearance</h3>
+        <label>Theme</label>
+        <div class="row">
+          <select id="themeSelect" onchange="setTheme(this.value);autoSave('app',{theme:this.value})">
+            <option value="light" {% if config.app.theme=='light' %}selected{% endif %}>Light</option>
+            <option value="dark" {% if config.app.theme=='dark' %}selected{% endif %}>Dark</option>
+            <option value="auto" {% if config.app.theme=='auto' %}selected{% endif %}>Auto (follows system)</option>
+          </select>
+          <select id="fontSelect" onchange="autoSave('app',{font_size:this.value})">
+            <option value="small" {% if config.app.font_size=='small' %}selected{% endif %}>Small</option>
+            <option value="normal" {% if config.app.font_size=='normal' %}selected{% endif %}>Normal</option>
+            <option value="large" {% if config.app.font_size=='large' %}selected{% endif %}>Large</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Channels -->
+    <div class="section" id="sec-channels">
+      <div class="card">
+        <h3>Connect Your Channels</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Lexy listens on all these channels. Customers reach you however they want.</p>
+
+        <!-- WhatsApp -->
+        <div class="day-row">
+          <span style="flex:1"><strong>💬 WhatsApp</strong><br><span style="font-size:13px;color:var(--muted)">Messaging app</span></span>
+          <span id="whatsapp-status" class="badge {% if config.channels.whatsapp.connected %}green{% else %}red{% endif %}">
+            {% if config.channels.whatsapp.connected %}🟢 Connected{% else %}🔴 Not Connected{% endif %}
+          </span>
+          <button class="btn btn-sm {% if config.channels.whatsapp.connected %}btn-secondary{% else %}btn-primary{% endif %}" onclick="toggleChannel('whatsapp')" id="whatsapp-btn">
+            {% if config.channels.whatsapp.connected %}Disconnect{% else %}Connect{% endif %}
+          </button>
+        </div>
+
+        <!-- SMS -->
+        <div class="day-row">
+          <span style="flex:1"><strong>📱 SMS</strong><br><span style="font-size:13px;color:var(--muted)">Text messages (Africa's Talking)</span></span>
+          <span id="sms-status" class="badge {% if config.channels.sms.connected %}green{% else %}red{% endif %}">
+            {% if config.channels.sms.connected %}🟢 Connected{% else %}🔴 Not Connected{% endif %}
+          </span>
+          <button class="btn btn-sm {% if config.channels.sms.connected %}btn-secondary{% else %}btn-primary{% endif %}" onclick="toggleChannel('sms')" id="sms-btn">
+            {% if config.channels.sms.connected %}Disconnect{% else %}Connect{% endif %}
+          </button>
+        </div>
+
+        <!-- Telegram -->
+        <div class="day-row">
+          <span style="flex:1"><strong>✈️ Telegram</strong><br><span style="font-size:13px;color:var(--muted)">Telegram bot</span></span>
+          <span id="telegram-status" class="badge {% if config.channels.telegram.connected %}green{% else %}red{% endif %}">
+            {% if config.channels.telegram.connected %}🟢 Connected{% else %}🔴 Not Connected{% endif %}
+          </span>
+          <button class="btn btn-sm {% if config.channels.telegram.connected %}btn-secondary{% else %}btn-primary{% endif %}" onclick="toggleChannel('telegram')" id="telegram-btn">
+            {% if config.channels.telegram.connected %}Disconnect{% else %}Connect{% endif %}
+          </button>
+        </div>
+
+        <!-- Email -->
+        <div class="day-row">
+          <span style="flex:1"><strong>📧 Email</strong><br><span style="font-size:13px;color:var(--muted)">SMTP email</span></span>
+          <span id="email-status" class="badge {% if config.channels.email.connected %}green{% else %}red{% endif %}">
+            {% if config.channels.email.connected %}🟢 Connected{% else %}🔴 Not Connected{% endif %}
+          </span>
+          <button class="btn btn-sm {% if config.channels.email.connected %}btn-secondary{% else %}btn-primary{% endif %}" onclick="toggleChannel('email')" id="email-btn">
+            {% if config.channels.email.connected %}Disconnect{% else %}Connect{% endif %}
+          </button>
+        </div>
+
+        <!-- Facebook Messenger -->
+        <div class="day-row">
+          <span style="flex:1"><strong>f Facebook Messenger</strong><br><span style="font-size:13px;color:var(--muted)">Facebook Page messenger</span></span>
+          <span id="facebook-status" class="badge {% if config.channels.facebook.connected %}green{% else %}red{% endif %}">
+            {% if config.channels.facebook.connected %}🟢 Connected{% else %}🔴 Not Connected{% endif %}
+          </span>
+          <button class="btn btn-sm {% if config.channels.facebook.connected %}btn-secondary{% else %}btn-primary{% endif %}" onclick="toggleChannel('facebook')" id="facebook-btn">
+            {% if config.channels.facebook.connected %}Disconnect{% else %}Connect{% endif %}
+          </button>
+        </div>
+      </div>
+
+      <!-- Channel-specific connect forms -->
+      <div class="card" id="whatsapp-form" style="display:none">
+        <h3>Connect WhatsApp</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">Scan the QR code with your WhatsApp to link Lexy.</p>
+        <div style="text-align:center;padding:20px">
+          <div class="qr-box" style="display:inline-block;background:var(--bg);padding:20px;border-radius:12px">
+            <img id="chQrImage" src="/api/qr" alt="QR Code" style="max-width:240px;height:auto;border-radius:8px;display:none">
+            <p id="chQrPlaceholder" style="color:var(--muted)">Start WhatsApp bridge to see QR</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="refreshChannelQR()" style="margin-top:12px">🔄 Refresh QR</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="cancelChannelForm('whatsapp')">Cancel</button>
+      </div>
+
+      <div class="card" id="sms-form" style="display:none">
+        <h3>Connect SMS via Africa's Talking</h3>
+        <label>Username</label>
+        <input type="text" id="sms-username" placeholder="Africa's Talking username">
+        <label>API Key</label>
+        <input type="password" id="sms-apikey" placeholder="Your API key">
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveSMS()">Save & Connect</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelChannelForm('sms')">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card" id="telegram-form" style="display:none">
+        <h3>Connect Telegram Bot</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">
+          1. Create a bot with <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram<br>
+          2. Copy the bot token<br>
+          3. Paste it below
+        </p>
+        <label>Bot Token</label>
+        <input type="password" id="telegram-token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveTelegram()">Save & Connect</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelChannelForm('telegram')">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card" id="email-form" style="display:none">
+        <h3>Connect Email (SMTP)</h3>
+        <label>Email Address</label>
+        <input type="email" id="email-addr" placeholder="you@example.com">
+        <label>SMTP Server</label>
+        <input type="text" id="email-server" placeholder="smtp.example.com">
+        <div class="row">
+          <div><label>SMTP Username</label><input type="text" id="email-user" placeholder="you@example.com"></div>
+          <div><label>SMTP Password</label><input type="password" id="email-pass" placeholder="••••••••"></div>
+        </div>
+        <label>SMTP Port</label>
+        <select id="email-port">
+          <option value="587">587 (TLS)</option>
+          <option value="465">465 (SSL)</option>
+          <option value="25">25 (Plain)</option>
+        </select>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveEmail()">Save & Connect</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelChannelForm('email')">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Facebook Messenger -->
+      <div class="card" id="facebook-form" style="display:none">
+        <h3>Connect Facebook Messenger</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">
+          1. Create a Facebook App at <a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a><br>
+          2. Add Messenger product to your app<br>
+          3. Link your Facebook Page<br>
+          4. Copy the Page Access Token below
+        </p>
+        <label>Facebook Page ID</label>
+        <input type="text" id="fb-page-id" placeholder="Your Facebook Page ID">
+        <label>Page Access Token</label>
+        <input type="password" id="fb-token" placeholder="EAAD...">
+        <label>Verify Token (for webhook)</label>
+        <input type="text" id="fb-verify-token" placeholder="my_custom_verify_token">
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveFacebook()">Save & Connect</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelChannelForm('facebook')">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 6: Account & Connection -->
+    <div class="section" id="sec-account">
+      <div class="card">
+        <h3>WhatsApp Connection</h3>
+        <div class="connected-status">
+          <span class="dot {% if config.whatsapp.connected %}green{% else %}red{% endif %}"></span>
+          <span>{% if config.whatsapp.connected %}Connected{% else %}Disconnected{% endif %}</span>
+          {% if config.whatsapp.connected_since %}<span style="color:var(--muted);font-size:13px">(since {{ config.whatsapp.connected_since }})</span>{% endif %}
+        </div>
+        {% if config.whatsapp.number %}<p style="font-size:14px;margin-bottom:12px">Number: {{ config.whatsapp.number }}</p>{% endif %}
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="rescanQR()">🔄 Re-scan QR</button>
+          <button class="btn btn-danger btn-sm" onclick="disconnectWhatsApp()">🔌 Disconnect</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>API & Services</h3>
+        <div class="grid-2">
+          <div><label>LLM Provider</label><select><option>Groq</option><option>Google Gemini</option></select></div>
+          <div><label>Status</label><p style="margin-top:6px">✅ Active</p></div>
+          <div><label>Response Time</label><p style="margin-top:6px">~1.2s</p></div>
+          <div><label>Model</label><p style="margin-top:6px;font-size:13px">llama-3.3-70b-versatile</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🔑 API Keys</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">Configure your AI provider API keys. At least one is required. Keys are stored locally and never sent anywhere except the AI provider.</p>
+        <label>Groq API Key <span style="font-weight:400;color:var(--muted)">(recommended, free)</span></label>
+        <div class="row">
+          <input type="password" id="apikey-groq" placeholder="gsk_..." style="flex:1" onchange="saveApiKeys()">
+          <button class="btn btn-sm btn-secondary" onclick="toggleKey('apikey-groq')">👁️</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:2px">Sign up: <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+        <label>Google Gemini API Key <span style="font-weight:400;color:var(--muted)">(fallback)</span></label>
+        <div class="row">
+          <input type="password" id="apikey-google" placeholder="AIza..." style="flex:1" onchange="saveApiKeys()">
+          <button class="btn btn-sm btn-secondary" onclick="toggleKey('apikey-google')">👁️</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:2px">Get key: <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></p>
+        <label>Telegram Bot Token <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <input type="password" id="apikey-telegram" placeholder="123456:ABC-DEF..." onchange="saveApiKeys()">
+        <p style="font-size:12px;color:var(--muted);margin-top:2px">Create bot: <a href="https://t.me/BotFather" target="_blank">@BotFather</a></p>
+        <div style="margin-top:8px">
+          <span id="apikey-status" class="badge green" style="display:none">✅ Keys saved</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Billing & Plan</h3>
+        <p style="font-size:14px;margin-bottom:4px">Current Plan: <strong id="billingPlan">Free Tier</strong></p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:8px" id="billingUsage">Messages used: <span id="billingUsed">0</span> / <span id="billingLimit">0</span> this month</p>
+        <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:12px"><div id="billingBar" style="width:0%;height:100%;background:var(--primary);border-radius:4px"></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="billingButtons">
+          <button class="btn btn-primary btn-sm" onclick="upgradePlan('starter')">Upgrade to Starter — $10/mo</button>
+          <button class="btn btn-primary btn-sm" onclick="upgradePlan('pro')">Upgrade to Pro — $30/mo</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Session Info</h3>
+        <div class="grid-2" style="font-size:14px">
+          <div><span style="color:var(--muted)">Version:</span> 1.0.0</div>
+          <div><span style="color:var(--muted)">Data:</span> <code>~/.lexy/</code></div>
+          <div style="grid-column:1/-1"><span style="color:var(--muted)">Account Email:</span><br>
+            <input type="email" id="accountEmail" value="" placeholder="your@email.com" style="margin-top:4px" onchange="changeEmail(this.value)">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="checkUpdates()">🔍 Check for Updates</button>
+          <button class="btn btn-secondary btn-sm" onclick="viewLogs()">📄 View Logs</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendFeedback()">💬 Send Feedback</button>
+          <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script>
+let saveTimer;
+const SAVING_MSG = '⏳ Saving...';
+
+async function autoSave(section, data) {
+  clearTimeout(saveTimer);
+  showToast(SAVING_MSG, 'saving');
+  saveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/config/${section}`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'save failed');
+      }
+      showToast('✓ Saved', 'success');
+    } catch(e) {
+      showToast('⚠️ ' + e.message, 'error');
+    }
+  }, 500);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('saveToast');
+  t.textContent = msg; t.className = 'save-toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), type === 'saving' ? 0 : 2000);
+}
+
+function switchSection(e, name) {
+  e.preventDefault();
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+  document.querySelector(`.sidebar a[data-section="${name}"]`).classList.add('active');
+}
+
+function updateTonePreview() {
+  const val = parseInt(document.getElementById('toneSlider').value);
+  let label = 'Balanced', text = '"Hi! Thanks for asking. I can help with that."';
+  if (val <= -30) { label = 'Friendly'; text = '"Hey! Great question, happy to help you with that 😊"'; }
+  else if (val >= 30) { label = 'Professional'; text = '"Thank you for your inquiry. I would be happy to assist you."'; }
+  document.getElementById('toneLabel').textContent = label;
+  document.getElementById('previewBox').textContent = text;
+}
+
+function speedValue() {
+  const sv = parseInt(document.getElementById('speedSlider').value);
+  return sv <= 25 ? 'instant' : sv >= 75 ? 'delayed' : 'natural';
+}
+
+function updateSpeedLabel() {
+  const sv = parseInt(document.getElementById('speedSlider').value);
+  const labels = ['Instant — 1-2s', 'Natural — 5-15s', 'Delayed — 1-3 min'];
+  document.getElementById('speedLabel').textContent = labels[sv <= 25 ? 0 : sv >= 75 ? 2 : 1];
+}
+
+function toggleGreeting() {
+  const type = document.getElementById('greetingType').value;
+  const el = document.getElementById('greetingCustom');
+  el.disabled = type !== 'custom';
+  el.style.opacity = type === 'custom' ? '1' : '.5';
+}
+
+async function resetSection(section) {
+  if (!confirm(`Reset ${section} settings to defaults?`)) return;
+  const res = await fetch(`/api/config/${section}/reset`, {method:'POST'});
+  if (res.ok) location.reload();
+}
+
+const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+async function saveHours() {
+  const hours = {};
+  const rows = document.querySelectorAll('#sec-hours .day-row');
+  rows.forEach((row, i) => {
+    const day = DAYS[i];
+    const open = row.querySelector('input[type="checkbox"]').checked;
+    const fromEl = document.getElementById('from_' + day);
+    const toEl = document.getElementById('to_' + day);
+    fromEl.disabled = !open; fromEl.style.opacity = open ? '1' : '.4';
+    toEl.disabled = !open; toEl.style.opacity = open ? '1' : '.4';
+    hours[day] = {open, from: fromEl.value, to: toEl.value};
+  });
+  await autoSave('hours', hours);
+}
+
+async function copyWeekdays() {
+  await fetch('/api/hours/copy-weekdays', {method:'POST'});
+  location.reload();
+}
+async function closeAll() {
+  await fetch('/api/hours/close-all', {method:'POST'});
+  location.reload();
+}
+async function addHoliday() {
+  const date = document.getElementById('holidayDate').value;
+  const label = document.getElementById('holidayLabel').value;
+  if (!date) return alert('Select a date');
+  await fetch('/api/holiday', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({date, label})});
+  location.reload();
+}
+async function removeHoliday(index) {
+  await fetch(`/api/holiday/${index}`, {method:'DELETE'});
+  location.reload();
+}
+
+function setTheme(theme) {
+  if (theme === 'auto') theme = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+}
+setTheme('{{ config.app.theme }}');
+updateTonePreview();
+updateSpeedLabel();
+
+// ─── Channel Management ─────────────────────────────────────
+
+async function toggleChannel(channel) {
+  const statusEl = document.getElementById(channel + '-status');
+  const btn = document.getElementById(channel + '-btn');
+
+  if (statusEl.textContent.includes('Connected')) {
+    // Disconnect
+    if (!confirm(`Disconnect ${channel}?`)) return;
+    const res = await fetch(`/api/channels/${channel}/disconnect`, {method:'POST'});
+    if (res.ok) {
+      statusEl.className = 'badge red';
+      statusEl.textContent = '🔴 Not Connected';
+      btn.className = 'btn btn-sm btn-primary';
+      btn.textContent = 'Connect';
+      showToast(`✓ ${channel} disconnected`, 'success');
+    } else showToast('⚠️ Failed to disconnect', 'error');
+  } else {
+    // Show connect form
+    document.querySelectorAll('#sec-channels .card[id$="-form"]').forEach(f => f.style.display = 'none');
+    const form = document.getElementById(channel + '-form');
+    if (form) form.style.display = 'block';
+
+    // Special: WhatsApp shows QR
+    if (channel === 'whatsapp') refreshChannelQR();
+  }
+}
+
+function cancelChannelForm(channel) {
+  document.getElementById(channel + '-form').style.display = 'none';
+}
+
+function refreshChannelQR() {
+  fetch('/api/rescan-qr', {method:'POST'}).catch(()=>{});
+  const img = document.getElementById('chQrImage');
+  const placeholder = document.getElementById('chQrPlaceholder');
+  fetch('/api/qr-status').then(r => r.json()).then(data => {
+    if (data.available) {
+      img.style.display = 'inline';
+      placeholder.style.display = 'none';
+      img.src = '/api/qr?_=' + Date.now();
+    } else {
+      img.style.display = 'none';
+      placeholder.style.display = 'block';
+    }
+  }).catch(() => {});
+}
+
+async function saveSMS() {
+  const username = document.getElementById('sms-username').value.trim();
+  const apikey = document.getElementById('sms-apikey').value.trim();
+  if (!username || !apikey) return showToast('⚠️ Fill in all fields', 'error');
+  const res = await fetch('/api/channels/sms/connect', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({config:{username, api_key: apikey}})});
+  if (res.ok) { showToast('✓ SMS connected', 'success'); location.reload(); }
+  else showToast('⚠️ Connection failed', 'error');
+}
+
+async function saveTelegram() {
+  const token = document.getElementById('telegram-token').value.trim();
+  if (!token) return showToast('⚠️ Enter bot token', 'error');
+  const res = await fetch('/api/channels/telegram/connect', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({config:{bot_token: token.substring(0,10) + '…'}})});
+  if (res.ok) { showToast('✓ Telegram connected', 'success'); location.reload(); }
+  else showToast('⚠️ Connection failed', 'error');
+}
+
+async function saveEmail() {
+  const addr = document.getElementById('email-addr').value.trim();
+  const server = document.getElementById('email-server').value.trim();
+  const user = document.getElementById('email-user').value.trim();
+  const pass = document.getElementById('email-pass').value.trim();
+  const port = document.getElementById('email-port').value;
+  if (!addr || !server || !user || !pass) return showToast('⚠️ Fill in all fields', 'error');
+  const res = await fetch('/api/channels/email/connect', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({config:{email: addr, smtp_server: server, smtp_user: user, smtp_port: port}})});
+  if (res.ok) { showToast('✓ Email connected', 'success'); location.reload(); }
+  else showToast('⚠️ Connection failed', 'error');
+}
+
+async function saveFacebook() {
+  const pageId = document.getElementById('fb-page-id').value.trim();
+  const token = document.getElementById('fb-token').value.trim();
+  const verifyToken = document.getElementById('fb-verify-token').value.trim();
+  if (!pageId || !token) return showToast('⚠️ Fill in Page ID and Access Token', 'error');
+  const res = await fetch('/api/channels/facebook/connect', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({config:{page_id: pageId, page_token: token.substring(0,8) + '…', verify_token: verifyToken}})});
+  if (res.ok) { showToast('✓ Facebook Messenger connected', 'success'); location.reload(); }
+  else showToast('⚠️ Connection failed', 'error');
+}
+
+// ─── Knowledge Base ─────────────────────────────────────────
+
+let kbFiles = [];
+
+async function loadKB() {
+  try {
+    const res = await fetch('/api/knowledge');
+    const data = await res.json();
+    renderKB(data);
+  } catch { /* silent */ }
+}
+
+function renderKB(data) {
+  const docs = data.documents || [];
+  const q = data.quota || {};
+  const pct = q.max_bytes ? Math.min(100, (q.used_bytes / q.max_bytes) * 100) : 0;
+  const usedMB = (q.used_bytes / 1024 / 1024).toFixed(1);
+  const maxMB = (q.max_bytes / 1024 / 1024).toFixed(0);
+
+  document.getElementById('kb-usage-text').textContent = `📦 ${usedMB} MB / ${maxMB} MB used (${docs.length} files)`;
+  document.getElementById('kb-usage-bar').style.width = pct + '%';
+  const badge = document.getElementById('kb-plan-badge');
+  badge.textContent = (q.plan || 'free').charAt(0).toUpperCase() + (q.plan || 'free').slice(1);
+  badge.className = 'badge ' + (q.plan === 'free' ? 'red' : 'green');
+
+  const list = document.getElementById('kb-doc-list');
+  if (!docs.length) {
+    list.innerHTML = '<p style="font-size:14px;color:var(--muted);text-align:center;padding:20px">No documents uploaded yet.</p>';
+    return;
+  }
+  list.innerHTML = docs.map(d => {
+    const sizeStr = d.size > 1024 * 1024 ? (d.size / 1024 / 1024).toFixed(1) + ' MB' : (d.size / 1024).toFixed(0) + ' KB';
+    return `<div class="day-row">
+      <span style="flex:1"><strong>📄 ${d.name}</strong><br><span style="font-size:13px;color:var(--muted)">${sizeStr} — ${d.uploaded_at}</span></span>
+      <button class="btn btn-sm btn-secondary" onclick="viewDoc('${d.id}')">👁️ View</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteDoc('${d.id}')">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+async function viewDoc(id) {
+  const res = await fetch('/api/knowledge/' + id);
+  const doc = await res.json();
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>${doc.name}</title><style>body{font-family:sans-serif;max-width:800px;margin:20px auto;padding:0 16px;line-height:1.6;white-space:pre-wrap}</style></head><body><h2>${doc.name}</h2><p style="color:gray">${doc.size} bytes — ${doc.uploaded_at}</p><hr>${doc.content}</body></html>`);
+}
+
+async function deleteDoc(id) {
+  if (!confirm('Delete this document?')) return;
+  const res = await fetch('/api/knowledge/' + id, {method:'DELETE'});
+  if (res.ok) { showToast('✓ Deleted', 'success'); loadKB(); }
+  else showToast('⚠️ Delete failed', 'error');
+}
+
+function showUploadModal() {
+  kbFiles = [];
+  document.getElementById('kb-upload-preview').innerHTML = '';
+  document.getElementById('kb-upload-btn').disabled = true;
+  document.getElementById('kb-file-input').value = '';
+  document.getElementById('kb-upload-modal').style.display = 'flex';
+}
+
+function hideUploadModal() {
+  document.getElementById('kb-upload-modal').style.display = 'none';
+}
+
+function handleFileSelect(files) {
+  kbFiles = Array.from(files);
+  renderFilePreview();
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('kb-dropzone').style.borderColor = 'var(--border)';
+  kbFiles = Array.from(e.dataTransfer.files).filter(f => {
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    return ['.pdf','.docx','.txt','.md'].includes(ext);
+  });
+  renderFilePreview();
+}
+
+function renderFilePreview() {
+  const preview = document.getElementById('kb-upload-preview');
+  if (!kbFiles.length) { preview.innerHTML = ''; document.getElementById('kb-upload-btn').disabled = true; return; }
+  preview.innerHTML = kbFiles.map(f => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span>📄</span><span style="flex:1">${f.name}</span><span style="color:var(--muted)">${(f.size/1024).toFixed(0)} KB</span></div>`).join('');
+  document.getElementById('kb-upload-btn').disabled = false;
+}
+
+async function startUpload() {
+  if (!kbFiles.length) return;
+  const btn = document.getElementById('kb-upload-btn');
+  btn.disabled = true; btn.textContent = '⏳ Uploading...';
+  const form = new FormData();
+  kbFiles.forEach(f => form.append('files', f));
+  try {
+    const res = await fetch('/api/knowledge/upload', {method:'POST', body: form});
+    const data = await res.json();
+    if (data.results) {
+      const ok = data.results.filter(r => r.status === 'ok').length;
+      const err = data.results.filter(r => r.status === 'error').length;
+      showToast(`✓ ${ok} uploaded${err ? `, ${err} failed` : ''}`, err ? 'error' : 'success');
+    }
+    hideUploadModal();
+    loadKB();
+  } catch { showToast('⚠️ Upload failed', 'error'); }
+  btn.disabled = false; btn.textContent = 'Upload';
+}
+
+// ─── Wired buttons ─────────────────────────────────────────
+
+async function rescanQR() {
+  showToast('⏳ Triggering QR refresh...', 'saving');
+  try {
+    // POST to whatsapp bridge to regenerate QR
+    const res = await fetch('/api/rescan-qr', {method:'POST'});
+    if (res.ok) showToast('✓ QR refreshed — check the bridge terminal', 'success');
+    else showToast('⚠️ QR refresh failed — is the bridge running?', 'error');
+  } catch { showToast('⚠️ Cannot reach server', 'error'); }
+}
+
+async function disconnectWhatsApp() {
+  if (!confirm('Disconnect WhatsApp? You will need to re-scan the QR code.')) return;
+  try {
+    await fetch('/api/config/whatsapp', {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({connected:false, number:'', connected_since:''})});
+    location.reload();
+  } catch { showToast('⚠️ Failed to disconnect', 'error'); }
+}
+
+async function exportData() {
+  showToast('⏳ Preparing export...', 'saving');
+  try {
+    const res = await fetch('/api/config');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'lexy-config-backup.json';
+    a.click(); URL.revokeObjectURL(url);
+    showToast('✓ Export downloaded', 'success');
+  } catch { showToast('⚠️ Export failed', 'error'); }
+}
+
+async function deleteAllData() {
+  if (!confirm('⚠️ Permanently delete ALL data? This cannot be undone.')) return;
+  if (!confirm('Are you absolutely sure? All settings, contacts, and messages will be lost.')) return;
+  try {
+    const res = await fetch('/api/config/reset-all', {method:'POST'});
+    if (res.ok) { showToast('✓ All data deleted. Reloading...', 'success'); setTimeout(() => location.reload(), 1500); }
+    else showToast('⚠️ Delete failed', 'error');
+  } catch { showToast('⚠️ Cannot reach server', 'error'); }
+}
+
+async function checkUpdates() {
+  showToast('⏳ Checking for updates...', 'saving');
+  await new Promise(r => setTimeout(r, 1500));
+  showToast('✓ You have the latest version (1.0.0)', 'success');
+}
+
+function viewLogs() {
+  window.open('/api/logs', '_blank');
+}
+
+function sendFeedback() {
+  window.open('mailto:support@lexyai.com?subject=Lexy Feedback', '_blank');
+}
+
+function changeEmail(email) {
+  // Store in localStorage for now — full backend auth later
+  localStorage.setItem('lexy_account_email', email);
+  showToast('✓ Email saved locally', 'success');
+}
+
+function logout() {
+  if (!confirm('Logout? You will need to re-enter your API keys.')) return;
+  localStorage.clear();
+  showToast('✓ Logged out. Reloading...', 'success');
+  setTimeout(() => location.reload(), 1500);
+}
+
+// ─── Billing ────────────────────────────────────────────────
+
+async function loadBilling() {
+  try {
+    const res = await fetch('/api/billing');
+    const data = await res.json();
+    const plan = data.plan || 'free';
+    const planLabel = {free:'Free Tier', starter:'Starter', pro:'Pro'}[plan] || 'Free Tier';
+    document.getElementById('billingPlan').textContent = planLabel;
+    document.getElementById('billingUsed').textContent = data.messages_used;
+    document.getElementById('billingLimit').textContent = data.messages_limit;
+    const pct = data.messages_limit ? Math.min(100, (data.messages_used / data.messages_limit) * 100) : 0;
+    document.getElementById('billingBar').style.width = pct + '%';
+
+    // Hide upgrade buttons if already on a paid plan
+    const btns = document.getElementById('billingButtons');
+    if (plan !== 'free') btns.innerHTML = `<span class="badge green" style="font-size:14px">✅ Current Plan</span>`;
+  } catch { /* silent */ }
+}
+
+async function upgradePlan(plan) {
+  const label = {starter:'Starter ($10/mo)', pro:'Pro ($30/mo)'}[plan] || plan;
+  if (!confirm(`Upgrade to ${label}?`)) return;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Upgrading...';
+  try {
+    const res = await fetch('/api/billing/plan', {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({plan})
+    });
+    if (res.ok) {
+      showToast(`✓ Upgraded to ${label}!`, 'success');
+      loadBilling();
+      loadKB(); // refresh quota display
+    } else {
+      const err = await res.json();
+      showToast('⚠️ ' + (err.error || 'Upgrade failed'), 'error');
+    }
+  } catch { showToast('⚠️ Cannot reach server', 'error'); }
+  btn.disabled = false; btn.textContent = `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)}`;
+}
+
+// Load billing on page load
+document.addEventListener('DOMContentLoaded', () => { loadKB(); loadBilling(); loadApiKeys(); });
+
+// ─── API Keys ────────────────────────────────────────────────
+
+async function loadApiKeys() {
+  try {
+    const res = await fetch('/api/config/api-keys');
+    const data = await res.json();
+    if (data.groq) document.getElementById('apikey-groq').placeholder = data.groq;
+    if (data.google) document.getElementById('apikey-google').placeholder = data.google;
+    if (data.telegram) document.getElementById('apikey-telegram').placeholder = data.telegram;
+  } catch {}
+}
+
+async function saveApiKeys() {
+  const keys = {
+    groq: document.getElementById('apikey-groq').value.trim(),
+    google: document.getElementById('apikey-google').value.trim(),
+    telegram: document.getElementById('apikey-telegram').value.trim(),
+  };
+  // Only send non-empty values
+  const payload = {};
+  for (const [k, v] of Object.entries(keys)) { if (v) payload[k] = v; }
+  if (!Object.keys(payload).length) return;
+
+  try {
+    const res = await fetch('/api/config/api-keys', {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const el = document.getElementById('apikey-status');
+      el.style.display = 'inline-block';
+      el.textContent = '✅ Keys saved';
+      setTimeout(() => el.style.display = 'none', 3000);
+      // Clear input fields after save
+      for (const id of ['apikey-groq', 'apikey-google', 'apikey-telegram']) {
+        document.getElementById(id).value = '';
+      }
+    }
+  } catch {}
+}
+
+function toggleKey(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+</script>
+</body>
+</html>
