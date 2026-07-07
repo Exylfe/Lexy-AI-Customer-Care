@@ -29,6 +29,7 @@ jobs:
             --assume-yes-for-downloads ^
             --windows-console-mode=disable ^
             --lto=yes --jobs=2 ^
+            --show-scons --show-progress ^
             --enable-plugin=anti-bloat ^
             --noinclude-pytest-mode=nofollow ^
             --noinclude-setuptools-mode=nofollow ^
