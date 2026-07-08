@@ -1,98 +1,180 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lexy — Setup Wizard</title>
+<title>Lexy — Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f5f7fa;--card:#fff;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--primary:#6c63ff;--primary-hover:#5a52e0;--success:#10b981;--danger:#ef4444;--shadow:0 4px 24px rgba(0,0,0,.08);--radius:16px}
-[data-theme=dark]{--bg:#0f0f23;--card:#1a1a2e;--text:#e4e4f0;--muted:#9ca3af;--border:#2d2d4a;--primary:#7c73ff;--primary-hover:#8d85ff;--shadow:0 4px 24px rgba(0,0,0,.3)}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.wizard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:560px;padding:40px;position:relative;overflow:hidden}
-.progress-bar{height:6px;background:var(--border);border-radius:3px;margin-bottom:32px;overflow:hidden}
-.progress-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .5s ease;width:0%}
-.step-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.step-counter{font-size:14px;color:var(--muted);font-weight:500}
-.back-btn{background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;font-weight:600;padding:4px 0}
-.back-btn:disabled{opacity:.3;cursor:not-allowed}
-.screen{display:none;animation:fadeIn .35s ease}
-.screen.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-h1{font-size:28px;font-weight:700;margin-bottom:8px;line-height:1.2}
-p.sub{color:var(--muted);font-size:15px;margin-bottom:28px;line-height:1.5}
-label{display:block;font-size:14px;font-weight:600;margin-bottom:6px;margin-top:16px}
+/* ── Reset & Theme ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0b;--surface:#18181b;--surface-elevated:#1f1f23;--border:#2a2a2e;--border-subtle:#1f1f23;--text:#fafafa;--text-secondary:#a1a1aa;--text-muted:#52525b;--accent:#10b981;--accent-hover:#34d399;--accent-subtle:rgba(16,185,129,.12);--danger:#ef4444;--shadow-sm:0 1px 2px rgba(0,0,0,.3);--shadow-md:0 4px 24px rgba(0,0,0,.4),0 1px 4px rgba(0,0,0,.3);--shadow-lg:0 8px 48px rgba(0,0,0,.5);--radius-sm:6px;--radius:10px;--radius-lg:16px;--radius-xl:24px;--font:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',monospace}
+[data-theme=light]{--bg:#f5f5f4;--surface:#ffffff;--surface-elevated:#fafafa;--border:#e4e4e7;--border-subtle:#f0f0f0;--text:#18181b;--text-secondary:#71717a;--text-muted:#a1a1aa;--accent:#059669;--accent-hover:#047857;--accent-subtle:rgba(5,150,105,.08);--shadow-sm:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 24px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.04);--shadow-lg:0 8px 48px rgba(0,0,0,.08)}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ── Background Grain ─────────────────────────────────────*/
+body::before{content:'';position:fixed;inset:0;z-index:0;opacity:.015;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none}
+
+/* ── Ambient Glow ──────────────────────────────────────── */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.ambient::before{content:'';position:absolute;top:-50%;left:-50%;width:100%;height:100%;background:radial-gradient(ellipse at 30% 20%,rgba(16,185,129,.06) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(16,185,129,.03) 0%,transparent 50%)}
+
+/* ── Card ──────────────────────────────────────────────── */
+.wizard{position:relative;z-index:1;width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:0;overflow:hidden}
+
+/* ── Progress ──────────────────────────────────────────── */
+.progress{display:flex;align-items:center;justify-content:center;gap:8px;padding:24px 32px 20px;border-bottom:1px solid var(--border)}
+.step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid var(--border);color:var(--text-muted);background:transparent;transition:all .4s cubic-bezier(.16,1,.3,1);position:relative}
+.step-dot.active{border-color:var(--accent);background:var(--accent-subtle);color:var(--accent)}
+.step-dot.done{border-color:var(--accent);background:var(--accent);color:#fff}
+.step-line{flex:1;max-width:48px;height:2px;background:var(--border);border-radius:1px;transition:background .4s cubic-bezier(.16,1,.3,1)}
+.step-line.done{background:var(--accent)}
+
+/* ── Steps ─────────────────────────────────────────────── */
+.step{padding:32px;display:none;animation:stepIn .45s cubic-bezier(.16,1,.3,1)}
+.step.active{display:block}
+@keyframes stepIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.step-icon{width:48px;height:48px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;margin-bottom:16px;background:var(--accent-subtle);color:var(--accent)}
+.step h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.step p.sub{font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6;max-width:40ch}
+
+/* ── Form ──────────────────────────────────────────────── */
+label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;margin-top:16px;color:var(--text-secondary);letter-spacing:.01em}
 label:first-of-type{margin-top:0}
-input,select,textarea{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:15px;background:var(--card);color:var(--text);transition:border-color .2s;font-family:inherit}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+input,select,textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--surface-elevated);color:var(--text);transition:all .2s;font-family:var(--font)}
+input:hover,select:hover,textarea:hover{border-color:var(--text-muted)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-subtle)}
 textarea{resize:vertical;min-height:80px}
-.char-count{font-size:12px;color:var(--muted);text-align:right;margin-top:4px}
-.qr-box{background:var(--bg);border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;margin:16px 0}
-.qr-placeholder{width:240px;height:240px;background:var(--card);margin:0 auto 16px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted)}
-.qr-steps{text-align:left;font-size:14px;color:var(--muted);line-height:1.8}
-.qr-steps ol{padding-left:20px}
+::placeholder{color:var(--text-muted)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.char-count{font-size:11px;color:var(--text-muted);text-align:right;margin-top:3px}
+
+/* ── QR ─────────────────────────────────────────────────── */
+.qr-box{background:var(--surface-elevated);border:1.5px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;margin:16px 0}
+.qr-frame{width:220px;height:220px;margin:0 auto 16px;border-radius:var(--radius);overflow:hidden;background:var(--surface);display:flex;align-items:center;justify-content:center}
+.qr-frame img{max-width:100%;height:auto;display:block}
+.qr-frame .placeholder{font-size:13px;color:var(--text-muted);line-height:1.6}
+.qr-steps{text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:var(--text-secondary);line-height:1.8}
+.qr-steps ol{padding-left:18px}
+.qr-steps li::marker{color:var(--accent);font-weight:600}
+.loading{text-align:center;padding:10px 0;color:var(--text-muted);font-size:13px;display:none}
+.loading.show{display:block}
+.error-msg{color:var(--danger);font-size:13px;margin-top:6px;display:none}
+
+/* ── Sliders ────────────────────────────────────────────── */
 .slider-group{margin:16px 0}
-.slider-label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
-input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none;padding:0;border:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--primary);cursor:pointer}
-.preview-box{background:var(--bg);border-radius:10px;padding:16px;margin:16px 0;font-size:14px;line-height:1.5;min-height:50px;border-left:3px solid var(--primary)}
+.slider-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:8px}
+.slider-label span:first-child{text-align:left}
+.slider-label span:last-child{text-align:right}
+.slider-label span:first-child,.slider-label span:last-child{flex:1}
+.slider-label span:nth-child(2){flex:0;padding:0 12px;font-weight:600;color:var(--text-secondary)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border);outline:none;padding:0;border:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent),0 2px 8px rgba(0,0,0,.3);cursor:pointer;transition:transform .2s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent);cursor:pointer}
+
+/* ── Toggle ─────────────────────────────────────────────── */
 .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
 .toggle-row:last-child{border-bottom:none}
-.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-row span{font-size:14px;font-weight:500}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;cursor:pointer}
 .toggle input{opacity:0;width:0;height:0;position:absolute}
-.toggle .slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:12px;transition:.3s}
-.toggle .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
-.toggle input:checked+.slider{background:var(--primary)}
-.toggle input:checked+.slider:before{transform:translateX(20px)}
-.actions{display:flex;gap:12px;margin-top:28px}
-.actions .btn{flex:1;padding:14px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;border:none;transition:background .2s;text-align:center}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-primary:hover{background:var(--primary-hover)}
-.btn-secondary{background:var(--bg);color:var(--text)}
+.toggle .track{position:absolute;inset:0;background:var(--border);border-radius:11px;transition:background .3s cubic-bezier(.16,1,.3,1)}
+.toggle .track::before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .3s cubic-bezier(.16,1,.3,1);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.track{background:var(--accent)}
+.toggle input:checked+.track::before{transform:translateX(18px)}
+
+/* ── Preview ────────────────────────────────────────────── */
+.preview-box{background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin:16px 0;font-size:14px;line-height:1.6;border-left:3px solid var(--accent);min-height:44px;color:var(--text-secondary);font-style:italic}
+
+/* ── Advanced Panel ─────────────────────────────────────── */
+.advanced-trigger{background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:4px 0;font-family:var(--font);transition:color .2s}
+.advanced-trigger:hover{color:var(--text-secondary)}
+
+/* ── Actions ────────────────────────────────────────────── */
+.actions{display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.actions .btn{flex:1;padding:12px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-align:center;font-family:var(--font);letter-spacing:-.01em}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:var(--surface-elevated);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:hover{background:var(--border)}
-.btn-success{background:var(--success);color:#fff}
-.btn-ghost{background:none;color:var(--primary);border:2px solid var(--primary)}
-.logo{text-align:center;margin-bottom:24px}
-.logo svg{width:64px;height:64px}
-.complete-icon{text-align:center;font-size:64px;margin:16px 0}
+.btn-success{background:var(--accent);color:#fff}
+.btn-success:hover{background:var(--accent-hover)}
+.btn-ghost{background:none;color:var(--text-secondary);font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid transparent;cursor:pointer;font-family:var(--font);transition:all .2s}
+.btn-ghost:hover{border-color:var(--border);color:var(--text)}
+.btn-link{background:none;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font);padding:8px 12px;border-radius:var(--radius-sm);transition:all .2s}
+.btn-link:hover{color:var(--text);background:var(--accent-subtle)}
+
+/* ── Completion ─────────────────────────────────────────── */
+.complete-icon{margin:8px 0 16px;display:flex;justify-content:center}
+.complete-icon svg{width:64px;height:64px;color:var(--accent)}
 .tip-list{list-style:none;padding:0}
-.tip-list li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+.tip-list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--text-secondary)}
 .tip-list li:last-child{border-bottom:none}
-.tip-list li::before{content:"• ";color:var(--primary);font-weight:700}
-.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
-.status-dot.green{background:var(--success)}
-.loading{text-align:center;padding:12px;color:var(--muted);font-size:14px;display:none}
-.loading.show{display:block}
-.error-msg{color:var(--danger);font-size:13px;margin-top:4px;display:none}
+.tip-list li svg{flex-shrink:0}
+.footer-links{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* ── Logo ───────────────────────────────────────────────── */
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.logo-mark{width:36px;height:36px;border-radius:var(--radius);background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:20px;height:20px;color:#fff}
+.logo-text{font-size:18px;font-weight:700;letter-spacing:-.03em}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media(max-width:600px){
+  .step{padding:24px}
+  .progress{padding:16px 20px 14px}
+  .wizard{border-radius:var(--radius)}
+  .step-dot{width:28px;height:28px;font-size:11px}
+  .step h1{font-size:20px}
+}
 </style>
 </head>
 <body>
-<div class="wizard">
-  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="ambient"></div>
 
-  <div class="step-header">
-    <button class="back-btn" id="backBtn" onclick="prevStep()" disabled>← Back</button>
-    <span class="step-counter" id="stepCounter">Step 1 of 5</span>
+<div class="wizard">
+  <!-- Progress -->
+  <div class="progress" id="progressBar">
+    <div class="step-dot active" id="p0">1</div>
+    <div class="step-line" id="l0"></div>
+    <div class="step-dot" id="p1">2</div>
+    <div class="step-line" id="l1"></div>
+    <div class="step-dot" id="p2">3</div>
+    <div class="step-line" id="l2"></div>
+    <div class="step-dot" id="p3">4</div>
+    <div class="step-line" id="l3"></div>
+    <div class="step-dot" id="p4">5</div>
   </div>
 
   <!-- Step 0: Welcome -->
-  <div class="screen active" data-step="0">
+  <div class="step active" data-step="0">
     <div class="logo">
-      <svg viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="16" fill="#6c63ff"/><path d="M18 22h28v4H22v8h22v4H22v10h-4V22z" fill="#fff"/></svg>
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a2 2 0 012 2v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M6 12h8a2 2 0 012 2v1a2 2 0 01-2 2H6a2 2 0 01-2-2v-1a2 2 0 012-2z"/><path d="M6 20h4"/></svg>
+      </div>
+      <span class="logo-text">Lexy</span>
     </div>
     <h1>Welcome to Lexy</h1>
-    <p class="sub">Let's get your 24/7 AI customer service running. This takes about 5 minutes.</p>
-    <div class="actions">
+    <p class="sub">Let's get your AI customer service running. This takes about 5 minutes.</p>
+    <div class="actions" style="border:none;padding-top:0;margin-top:24px">
       <button class="btn btn-primary" onclick="nextStep()">Start Setup</button>
     </div>
-    <div style="text-align:center;margin-top:12px">
-      <button class="btn-ghost" style="padding:8px 16px;border-radius:8px;font-size:14px" onclick="skipSetup()">Skip for Now</button>
-      <button class="btn-ghost" style="padding:8px 16px;border-radius:8px;font-size:14px" onclick="openHelp()">Help &amp; FAQ</button>
+    <div class="footer-links">
+      <button class="btn-link" onclick="skipSetup()">Skip for Now</button>
+      <button class="btn-link" onclick="openHelp()">Help &amp; FAQ</button>
     </div>
   </div>
 
   <!-- Step 1: Business Details -->
-  <div class="screen" data-step="1">
+  <div class="step" data-step="1">
+    <div class="step-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+    </div>
     <h1>Tell Us About Your Business</h1>
     <p class="sub">Lexy will introduce your business to customers automatically.</p>
     <label>Business Name *</label>
@@ -100,7 +182,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <div class="char-count"><span id="bizNameCount">{{ config.business.name|length }}</span>/50</div>
     <label>Business Type *</label>
     <select id="bizType">
-      <option value="">Select...</option>
+      <option value="">Select type...</option>
       {% for opt in ["Restaurant","Salon","Repair","Retail","Service","E-Commerce","Hotel","Medical","Other"] %}
       <option value="{{ opt }}" {% if config.business.type == opt %}selected{% endif %}>{{ opt }}</option>
       {% endfor %}
@@ -110,38 +192,48 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <div class="char-count"><span id="bizDescCount">{{ config.business.description|length }}</span>/250</div>
     <div class="error-msg" id="step1Error">Please fill in all required fields.</div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="saveStep(1)">Next →</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+      <button class="btn btn-primary" onclick="saveStep(1)">Continue</button>
     </div>
   </div>
 
   <!-- Step 2: WhatsApp QR -->
-  <div class="screen" data-step="2">
+  <div class="step" data-step="2">
+    <div class="step-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z"/><path d="M17 17h.01"/><path d="M21 17v4"/><path d="M17 21h4"/></svg>
+    </div>
     <h1>Connect Your WhatsApp</h1>
-    <p class="sub">Scan the QR code with your WhatsApp to connect Lexy to your business number.</p>
+    <p class="sub">Scan the QR code with your WhatsApp to link Lexy to your business number.</p>
     <div class="qr-box">
-      <div class="qr-placeholder" id="qrContainer">
-        <img id="qrImage" src="/api/qr" alt="QR Code" style="max-width:240px;height:auto;display:none;border-radius:8px">
-        <span id="qrPlaceholderText">Start the WhatsApp bridge<br>to see QR code here</span>
+      <div class="qr-frame" id="qrContainer">
+        <img id="qrImage" src="/api/qr" alt="QR Code" style="display:none">
+        <span class="placeholder" id="qrPlaceholderText">Start the WhatsApp bridge<br>to see QR code here</span>
       </div>
       <div class="qr-steps">
         <ol>
           <li>Open WhatsApp on your phone</li>
-          <li>Go to Settings → Linked Devices</li>
+          <li>Go to Settings &rarr; Linked Devices</li>
           <li>Tap "Link a Device"</li>
           <li>Point camera at QR code</li>
         </ol>
       </div>
     </div>
-    <div class="loading" id="qrLoading">⏳ Waiting for scan...</div>
+    <div class="loading" id="qrLoading">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+      Waiting for scan...
+    </div>
     <div class="actions">
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
       <button class="btn btn-secondary" onclick="refreshQR()">Refresh QR</button>
-      <button class="btn btn-secondary" onclick="openHelp()">Having trouble?</button>
-      <button class="btn btn-primary" onclick="nextStep()">Skip for Now</button>
+      <button class="btn btn-link" onclick="nextStep()">Skip</button>
     </div>
   </div>
 
   <!-- Step 3: Personality -->
-  <div class="screen" data-step="3">
+  <div class="step" data-step="3">
+    <div class="step-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    </div>
     <h1>How Should Lexy Sound?</h1>
     <p class="sub">Set the tone and style for your AI assistant.</p>
 
@@ -152,15 +244,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 
     <label>Response Speed</label>
     <div class="slider-group">
-      <div class="slider-label"><span>Fast<br><small>Replies instantly</small></span><span id="speedLabel">Natural</span><span>Delayed<br><small>Waits 1-3 min</small></span></div>
+      <div class="slider-label"><span>Fast<br><small style="color:var(--text-muted);font-weight:400">Replies instantly</small></span><span id="speedLabel">Natural</span><span>Delayed<br><small style="color:var(--text-muted);font-weight:400">Waits 1-3 min</small></span></div>
       <input type="range" id="speedSlider" min="0" max="100" value="{% if config.personality.speed=='instant' %}0{% elif config.personality.speed=='delayed' %}100{% else %}50{% endif %}" oninput="updatePreview()">
     </div>
 
-    <div class="toggle-row" style="margin-top:16px">
+    <div class="toggle-row">
       <span>Use Emojis</span>
       <label class="toggle">
         <input type="checkbox" id="emojiToggle" {% if config.personality.use_emojis %}checked{% endif %} onchange="updatePreview()">
-        <span class="slider"></span>
+        <span class="track"></span>
       </label>
     </div>
 
@@ -174,8 +266,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <div class="preview-box" id="previewBox">"Hi! Thanks for reaching out. How can I help you today?"</div>
 
     <div style="margin-top:16px">
-      <button class="btn-ghost" style="padding:6px 12px;border-radius:6px;font-size:13px" onclick="toggleAdvanced()">⚙️ Advanced Settings</button>
-      <div id="advancedPanel" style="display:none;margin-top:12px">
+      <button class="advanced-trigger" onclick="toggleAdvanced()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Advanced Settings
+      </button>
+      <div id="advancedPanel" style="display:none;margin-top:12px;padding:16px;background:var(--surface-elevated);border-radius:var(--radius);border:1px solid var(--border)">
         <label>Greeting Type</label>
         <select id="greetingType" onchange="document.getElementById('greetingCustom').disabled=this.value!='custom'">
           <option value="auto">Auto — Lexy introduces itself</option>
@@ -186,45 +281,71 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     </div>
 
     <div class="actions">
-      <button class="btn btn-primary" onclick="saveStep(3)">Next →</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+      <button class="btn btn-primary" onclick="saveStep(3)">Continue</button>
     </div>
   </div>
 
   <!-- Step 4: Complete -->
-  <div class="screen" data-step="4">
-    <div class="complete-icon">🎉</div>
-    <h1 style="text-align:center">All Set!</h1>
-    <p class="sub" style="text-align:center">Lexy is now configured and ready to go.</p>
+  <div class="step" data-step="4">
+    <div class="complete-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <h1 style="text-align:center">All Set</h1>
+    <p class="sub" style="text-align:center">Lexy is configured and ready to go.</p>
 
     <ul class="tip-list">
-      <li>🟢 Lexy is online and listening</li>
-      <li>💬 Customers can text your WhatsApp</li>
-      <li>📊 Check your dashboard for insights</li>
-      <li>⚙️ Customize anytime in Settings</li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Lexy is online and listening
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Customers can text your WhatsApp
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Check your dashboard for insights
+      </li>
+      <li>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Customize anytime in Settings
+      </li>
     </ul>
 
     <div class="actions">
-      <button class="btn btn-success" onclick="finishSetup()">Go to Dashboard →</button>
+      <button class="btn btn-success" onclick="finishSetup()">Go to Dashboard</button>
     </div>
-    <div style="text-align:center;margin-top:12px;display:flex;gap:8px;justify-content:center">
-      <button class="btn-ghost" style="padding:8px 16px;border-radius:8px;font-size:13px" onclick="openHelp()">📧 Email Support</button>
-      <button class="btn-ghost" style="padding:8px 16px;border-radius:8px;font-size:13px" onclick="openHelp()">📖 Getting Started Guide</button>
+    <div class="footer-links">
+      <button class="btn-link" onclick="openHelp()">Email Support</button>
+      <button class="btn-link" onclick="openHelp()">Getting Started Guide</button>
     </div>
   </div>
-
 </div>
 
 <script>
-const TOTAL_STEPS = 5; // 0-indexed: 0,1,2,3,4
+const TOTAL_STEPS = 5;
 let currentStep = 0;
+
+function updateProgress(step) {
+  for (let i = 0; i < TOTAL_STEPS; i++) {
+    const dot = document.getElementById('p' + i);
+    const line = document.getElementById('l' + i);
+    dot.className = 'step-dot';
+    if (i === step) dot.classList.add('active');
+    else if (i < step) dot.classList.add('done');
+    if (line) {
+      line.className = 'step-line';
+      if (i < step) line.classList.add('done');
+    }
+  }
+}
 
 function showStep(step) {
   currentStep = step;
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelector(`.screen[data-step="${step}"]`).classList.add('active');
-  document.getElementById('progressFill').style.width = ((step / (TOTAL_STEPS-1)) * 100) + '%';
-  document.getElementById('stepCounter').textContent = step === 0 ? 'Getting Started' : `Step ${step} of 4`;
-  document.getElementById('backBtn').disabled = step === 0;
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector('.step[data-step="'+step+'"]').classList.add('active');
+  updateProgress(step);
 }
 
 function nextStep() { if (currentStep < TOTAL_STEPS-1) showStep(currentStep + 1); }
@@ -270,9 +391,7 @@ function finishSetup() {
 
 function refreshQR() {
   document.getElementById('qrLoading').classList.add('show');
-  // Trigger bridge to regenerate QR
   fetch('/api/rescan-qr', {method:'POST'}).catch(()=>{});
-  // Check for new QR
   pollQR();
 }
 
@@ -284,12 +403,10 @@ function pollQR() {
     if (data.available) {
       img.style.display = 'block';
       placeholder.style.display = 'none';
-      // Cache-bust the QR image
       img.src = '/api/qr?_=' + Date.now();
     } else {
       img.style.display = 'none';
       placeholder.style.display = 'block';
-      // Keep polling every 3s if bridge is running
       if (data.bridge_running) {
         setTimeout(pollQR, 3000);
       }
@@ -299,7 +416,6 @@ function pollQR() {
   });
 }
 
-// Auto-poll when step 2 becomes active
 let qrPollStarted = false;
 const origShowStep = showStep;
 showStep = function(step) {
@@ -311,7 +427,7 @@ showStep = function(step) {
 };
 
 const previews = {
-  friendly: '"Hey! Great question, happy to help you with that 😊"',
+  friendly: '"Hey! Great question, happy to help you with that."',
   balanced: '"Hi! Thanks for asking. I can help with that."',
   professional: '"Thank you for your inquiry. I would be happy to assist you."'
 };
@@ -322,9 +438,8 @@ function updatePreview() {
   else if (val >= 30) label = 'professional';
   document.getElementById('toneLabel').textContent = label.charAt(0).toUpperCase() + label.slice(1);
   document.getElementById('previewBox').textContent = previews[label];
-  // Speed label
   const sv = parseInt(document.getElementById('speedSlider').value);
-  const speedLabels = ['Fast — Replies instantly', 'Natural — Waits 5-15s', 'Delayed — Waits 1-3 min'];
+  const speedLabels = ['Fast','Natural','Delayed'];
   const si = sv <= 25 ? 0 : sv >= 75 ? 2 : 1;
   document.getElementById('speedLabel').textContent = speedLabels[si];
 }

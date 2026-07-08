@@ -251,3 +251,120 @@ def get_all_knowledge_text(max_chars=50000):
             texts.append(f"--- Document: {entry['name']} ---\n{content}")
             total += len(content)
     return "\n\n".join(texts)
+
+
+# ─── Chunking (for RAG, §3 of dev brief) ────────────────────────
+
+def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[str]:
+    """Split text into overlapping chunks of approximately chunk_size characters.
+    
+    The overlap prevents losing context that spans a chunk boundary.
+    Chunks are split at sentence boundaries when possible, falling back
+    to word boundaries or character position.
+    """
+    if not text:
+        return []
+    if len(text) <= chunk_size:
+        return [text]
+
+    import re
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = min(start + chunk_size, len(text))
+        if end < len(text):
+            # Try to break at a sentence boundary
+            candidate = text[start:end]
+            # Look backwards for sentence enders within the last 30% of the chunk
+            search_start = max(len(candidate) - int(chunk_size * 0.3), 0)
+            tail = candidate[search_start:]
+            # Prefer sentence boundaries
+            sentence_match = re.search(r'[.?!]\s(?:[A-Z"])', tail)
+            if sentence_match:
+                adjust = len(candidate[:search_start]) + sentence_match.end() - 1
+                end = start + adjust
+            else:
+                # Fall back to word boundary
+                word_match = re.search(r'\s', tail[::-1])
+                if word_match:
+                    adjust = len(candidate) - word_match.start()
+                    if adjust > int(chunk_size * 0.5):  # Don't make chunks too short
+                        adjust = len(candidate)
+                    end = start + adjust
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        start = end - overlap
+        if start >= end:
+            start = end  # Safety: prevent infinite loop
+    return chunks
+
+
+def sync_document_to_supabase(
+    profile_id: str,
+    doc_name: str,
+    text_content: str,
+    chunk_size: int = 800,
+    overlap: int = 100,
+) -> bool:
+    """Chunk text, generate embeddings, and insert into Supabase documents table.
+    
+    This runs server-side only (Flask backend) using the service role key.
+    Returns True if all chunks were inserted successfully.
+    """
+    from embeddings import generate_embeddings_batch
+
+    if not text_content.strip():
+        logger.warning("Empty document content — skipping Supabase sync")
+        return False
+
+    chunks = chunk_text(text_content, chunk_size=chunk_size, overlap=overlap)
+    logger.info("Split '%s' into %d chunks", doc_name, len(chunks))
+
+    # Generate embeddings for all chunks in a batch
+    embeddings = generate_embeddings_batch(chunks)
+    if embeddings is None:
+        logger.warning("Embedding generation failed for '%s' — skipping Supabase", doc_name)
+        return False
+
+    if len(embeddings) != len(chunks):
+        logger.error(
+            "Embedding count mismatch: %d chunks vs %d embeddings",
+            len(chunks), len(embeddings),
+        )
+        return False
+
+    # Build rows
+    rows = []
+    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+        rows.append({
+            "content": chunk,
+            "metadata": {"source": doc_name, "chunk_index": i},
+            "embedding": emb,
+        })
+
+    # Insert into Supabase
+    from supabase_client import insert_document_chunks
+    success = insert_document_chunks(profile_id, rows)
+    if success:
+        logger.info("Synced %d chunks to Supabase for '%s'", len(rows), doc_name)
+    else:
+        logger.warning("Failed to sync chunks to Supabase for '%s'", doc_name)
+    return success
+
+
+def delete_profile_documents_local(profile_id: str, doc_name: str | None = None) -> bool:
+    """Delete Supabase document chunks for a profile (or specific doc)."""
+    from supabase_client import get_service_client
+    client = get_service_client()
+    if not client:
+        return False
+    try:
+        query = client.table("documents").delete().eq("profile_id", profile_id)
+        if doc_name:
+            query = query.filter("metadata", "cs", f'"source": "{doc_name}"')
+        query.execute()
+        return True
+    except Exception as e:
+        logger.warning("delete_profile_documents failed: %s", e)
+        return False

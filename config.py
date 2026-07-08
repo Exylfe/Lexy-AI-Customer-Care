@@ -83,3 +83,21 @@ BRAIN_SECRET = os.environ.get("BRAIN_SECRET", "")
 # Data files
 CONTACTS_FILE = os.path.join(DATA_DIR, "contacts.json")
 MESSAGES_FILE = os.path.join(DATA_DIR, "messages.json")
+
+# =============================================================================
+# Supabase Configuration
+# =============================================================================
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+
+# =============================================================================
+# Embedding Configuration (for RAG knowledge base)
+# =============================================================================
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY", "")
+EMBEDDING_URL = os.environ.get(
+    "EMBEDDING_URL",
+    "https://api.openai.com/v1/embeddings",
+)
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION", "1536"))

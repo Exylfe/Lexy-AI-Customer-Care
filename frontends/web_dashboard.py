@@ -10,12 +10,13 @@ import logging
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session
 from lexy_config import (
     load_config, save_config, get_section, update_section,
     reset_section, is_setup_complete, mark_setup_complete,
     DEFAULT_CONFIG,
 )
+from supabase_client import get_service_client, get_anon_client, get_profile as supabase_get_profile
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,6 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger("web_dashboard")
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "lexy-dashboard-secret-change-me")
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -91,6 +93,130 @@ def dashboard():
     """Main customization dashboard."""
     config = load_config()
     return render_template("dashboard.html", config=config)
+
+
+# ─── Supabase Auth ───────────────────────────────────────────────
+
+
+@app.route("/api/auth/signup", methods=["POST"])
+def api_auth_signup():
+    """Create a new Supabase account. Returns session + profile."""
+    data = request.get_json(force=True)
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password", "")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    client = get_service_client()
+    if not client:
+        return jsonify({"error": "Supabase not configured"}), 501
+
+    try:
+        resp = client.auth.sign_up({"email": email, "password": password})
+        user = resp.user
+        if not user:
+            return jsonify({"error": "Signup failed — no user returned"}), 500
+
+        # Profile is auto-created by the handle_new_user() trigger
+        session["supabase_user_id"] = user.id
+        session["supabase_email"] = email
+        logger.info("User signed up: %s (%s)", email, user.id)
+
+        return jsonify({
+            "status": "ok",
+            "user": {"id": user.id, "email": email},
+        })
+    except Exception as e:
+        err_msg = str(e)
+        # Supabase returns user-friendly error messages
+        if "already registered" in err_msg.lower():
+            return jsonify({"error": "This email is already registered. Try logging in."}), 409
+        logger.warning("Signup failed: %s", err_msg)
+        return jsonify({"error": err_msg}), 400
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_auth_login():
+    """Log in with email/password. Stores user_id in session."""
+    data = request.get_json(force=True)
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password", "")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
+
+    client = get_service_client()
+    if not client:
+        return jsonify({"error": "Supabase not configured"}), 501
+
+    try:
+        resp = client.auth.sign_in_with_password({"email": email, "password": password})
+        user = resp.user
+        if not user:
+            return jsonify({"error": "Login failed"}), 401
+
+        session["supabase_user_id"] = user.id
+        session["supabase_email"] = email
+        logger.info("User logged in: %s", email)
+
+        # Fetch profile
+        profile = supabase_get_profile(user.id) or {}
+
+        return jsonify({
+            "status": "ok",
+            "user": {
+                "id": user.id,
+                "email": email,
+                "business_name": profile.get("business_name", ""),
+                "current_tier": profile.get("current_tier", "Free"),
+                "messages_used": profile.get("messages_used", 0),
+                "message_limit": profile.get("message_limit", 1500),
+            },
+        })
+    except Exception as e:
+        err_msg = str(e)
+        if "invalid login" in err_msg.lower() or "invalid credentials" in err_msg.lower():
+            return jsonify({"error": "Invalid email or password"}), 401
+        logger.warning("Login failed: %s", err_msg)
+        return jsonify({"error": err_msg}), 400
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def api_auth_logout():
+    """Log out and clear session."""
+    client = get_service_client()
+    if client:
+        try:
+            client.auth.sign_out()
+        except Exception:
+            pass
+    session.pop("supabase_user_id", None)
+    session.pop("supabase_email", None)
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/auth/status", methods=["GET"])
+def api_auth_status():
+    """Return current auth status."""
+    user_id = session.get("supabase_user_id")
+    if not user_id:
+        return jsonify({"authenticated": False})
+
+    profile = supabase_get_profile(user_id) if user_id else None
+    return jsonify({
+        "authenticated": True,
+        "user": {
+            "id": user_id,
+            "email": session.get("supabase_email", ""),
+            "business_name": profile.get("business_name", "") if profile else "",
+            "current_tier": profile.get("current_tier", "Free") if profile else "Free",
+            "messages_used": profile.get("messages_used", 0) if profile else 0,
+            "message_limit": profile.get("message_limit", 1500) if profile else 1500,
+        },
+    })
 
 
 # ─── API: Config CRUD ──────────────────────────────────────────
@@ -335,8 +461,8 @@ def api_kb_list():
 
 @app.route("/api/knowledge/upload", methods=["POST"])
 def api_kb_upload():
-    """Upload documents (multipart)."""
-    from knowledge_base import upload_documents, get_quota
+    """Upload documents (multipart). Syncs to Supabase for RAG if authenticated."""
+    from knowledge_base import upload_documents, get_quota, sync_document_to_supabase
 
     if "files" not in request.files:
         return jsonify({"error": "No files provided"}), 400
@@ -345,7 +471,38 @@ def api_kb_upload():
     if not files or all(f.filename == "" for f in files):
         return jsonify({"error": "No files selected"}), 400
 
+    # 1. Enforce document count limit server-side (dev brief §3)
+    user_id = session.get("supabase_user_id")
+    if user_id:
+        from supabase_client import get_document_count
+        profile = supabase_get_profile(user_id)
+        tier = (profile or {}).get("current_tier", "Free")
+        tier_doc_limits = {"Free": 3, "Starter": 3, "Business": 999, "Enterprise": 9999}
+        doc_limit = tier_doc_limits.get(tier, 3)
+        current_count = get_document_count(user_id) or 0
+        if current_count >= doc_limit:
+            return jsonify({
+                "error": f"Document limit reached for {tier} tier ({doc_limit} documents). Upgrade to add more.",
+                "results": [],
+                "quota": get_quota(),
+            }), 403
+
+    # 2. Save locally first
     results = upload_documents(files)
+
+    # 3. For successful uploads, sync to Supabase with chunking + embeddings
+    if user_id:
+        from knowledge_base import get_document
+        for r in results:
+            if r["status"] == "ok":
+                doc = get_document(r["id"])
+                if doc and doc.get("content"):
+                    sync_document_to_supabase(
+                        profile_id=user_id,
+                        doc_name=doc["name"],
+                        text_content=doc["content"],
+                    )
+
     errors = [r for r in results if r["status"] == "error"]
     status_code = 207 if errors else 200
 
@@ -365,8 +522,16 @@ def api_kb_get(doc_id):
 @app.route("/api/knowledge/<doc_id>", methods=["DELETE"])
 def api_kb_delete(doc_id):
     """Delete a document."""
-    from knowledge_base import delete_document, get_quota
+    from knowledge_base import delete_document, get_document, get_quota, delete_profile_documents_local
+
+    # Get doc info before deleting (for Supabase cleanup)
+    doc = get_document(doc_id)
+    user_id = session.get("supabase_user_id")
+
     if delete_document(doc_id):
+        # Clean up Supabase chunks for this doc
+        if user_id and doc:
+            delete_profile_documents_local(user_id, doc_name=doc.get("name", ""))
         return jsonify({"status": "ok", "quota": get_quota()})
     return jsonify({"error": "Document not found"}), 404
 
@@ -383,16 +548,37 @@ def api_kb_quota():
 
 @app.route("/api/billing", methods=["GET"])
 def api_billing():
-    """Get current billing/plan info."""
+    """Get current billing/plan info, preferring Supabase profile data."""
     from knowledge_base import get_quota
     config = load_config()
     billing = config.get("billing", {"plan": "free"})
     quota = get_quota()
+
+    # Try to get real usage from Supabase if user is authenticated
+    user_id = session.get("supabase_user_id")
+    messages_used = 0
+    message_limit = 1500
+    if user_id:
+        profile = supabase_get_profile(user_id)
+        if profile:
+            messages_used = profile.get("messages_used", 0)
+            message_limit = profile.get("message_limit", 1500)
+            # Sync plan from Supabase profile
+            supabase_tier = profile.get("current_tier", "").lower()
+            if supabase_tier in ("free", "starter", "business", "enterprise"):
+                billing["plan"] = "free" if supabase_tier == "free" else \
+                                  "starter" if supabase_tier == "starter" else "pro"
+    else:
+        # Fallback to local config values
+        messages_used = billing.get("messages_used", 234)
+        message_limit = billing.get("messages_limit", 1500 if billing["plan"] == "free" else (50000 if billing["plan"] == "starter" else 999999))
+
+    plan_limits = {"free": 1500, "starter": 50000, "pro": 999999}
     return jsonify({
         "plan": billing["plan"],
         "quota": quota,
-        "messages_used": 234,
-        "messages_limit": 1500 if billing["plan"] == "free" else (50000 if billing["plan"] == "starter" else 999999),
+        "messages_used": messages_used,
+        "messages_limit": message_limit,
     })
 
 
@@ -408,6 +594,22 @@ def api_update_plan():
     config.setdefault("billing", {})["plan"] = plan
     save_config(config)
     logger.info("Plan upgraded to '%s'", plan)
+
+    # Also sync to Supabase profile if authenticated
+    user_id = session.get("supabase_user_id")
+    if user_id:
+        tier_map = {"free": "Free", "starter": "Starter", "pro": "Business"}
+        limit_map = {"free": 1500, "starter": 50000, "pro": 999999}
+        client = get_service_client()
+        if client:
+            try:
+                client.table("profiles").update({
+                    "current_tier": tier_map.get(plan, "Free"),
+                    "message_limit": limit_map.get(plan, 1500),
+                }).eq("id", user_id).execute()
+                logger.info("Synced plan change to Supabase for %s", user_id)
+            except Exception as e:
+                logger.warning("Failed to sync plan to Supabase: %s", e)
 
     from knowledge_base import get_quota
     return jsonify({"status": "ok", "plan": plan, "quota": get_quota()})

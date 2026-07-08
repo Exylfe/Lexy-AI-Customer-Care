@@ -7,6 +7,7 @@ from config import (
     SYSTEM_PROMPT,
     COMMAND_PROMPT,
     TELEGRAM_BOT_TOKEN,
+    EMBEDDING_API_KEY,
 )
 from memory import load_history, save_history
 from tools import get_schemas, call_tool
@@ -266,17 +267,63 @@ def _try_google_gemini(messages, provider):
         return None, False
 
 
-def chat(user_message, history=None, sender=None, admin_mode=False):
+def chat(user_message, history=None, sender=None, admin_mode=False, profile_id=None):
     """Send a user message through the LLM, trying providers in order.
     Falls back to the next provider if one fails. `sender` is an
     optional identifier (e.g., WhatsApp number) used for memory and
-    command-mode detection.
+    command-mode detection. `profile_id` is the Supabase user UUID for
+    usage tracking and RAG (used server-side only).
     """
+    # ── Message usage gatekeeper (server-side only) ──────────────
+    if profile_id:
+        from supabase_client import increment_message_usage
+        new_count = increment_message_usage(profile_id)
+        if new_count is None:
+            logger.warning(
+                "Message limit reached for profile %s — rejecting",
+                profile_id,
+            )
+            return (
+                "I'm sorry, but you've reached your message limit for this "
+                "billing cycle. Please upgrade your plan to continue using Lexy."
+            )
+
+    # ── RAG: retrieve relevant knowledge base content ──────────
+    rag_context = None
+    if profile_id and EMBEDDING_API_KEY:
+        try:
+            from embeddings import generate_embedding
+            from supabase_client import match_documents
+            query_embedding = generate_embedding(user_message)
+            if query_embedding:
+                matches = match_documents(query_embedding, profile_id)
+                if matches:
+                    rag_context = "\n\n".join(
+                        f"[Relevant knowledge snippet] {m['content']}"
+                        for m in matches
+                    )
+                    logger.info(
+                        "RAG: found %d relevant snippets for profile %s",
+                        len(matches), profile_id,
+                    )
+        except Exception as e:
+            logger.warning("RAG pipeline failed: %s", e)
+
     persist = history is None
     if history is None:
         history = load_history(sender)
 
     prompt = _build_prompt(sender, admin_mode=admin_mode)
+
+    # ── Inject RAG context into system prompt ────────────────────
+    if rag_context:
+        prompt += (
+            "\n\nREFERENCE DOCUMENTS (ground your answers in these before using general knowledge):\n"
+            + rag_context
+            + "\n\nIf the reference documents contain relevant information, prioritize it over "
+            "your general knowledge. If no references are relevant, answer normally."
+        )
+
     messages = [{"role": "system", "content": prompt}] + history
     messages.append({"role": "user", "content": user_message})
 

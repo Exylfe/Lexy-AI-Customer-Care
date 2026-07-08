@@ -6,3 +6,9 @@ pystray>=0.19.0
 pillow>=10.0.0
 pypdf>=5.0.0
 python-docx>=1.1.0
+
+# Supabase backend
+supabase>=2.0.0
+
+# Embeddings (OpenAI-compatible API)
+openai>=1.0.0
